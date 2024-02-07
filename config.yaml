@@ -1,0 +1,90 @@
+db_info:
+  uri: bolt://localhost:7687
+  database: neo4j
+  user: neo4j
+  password: password
+initializing_queries:
+  constraints:
+    unique_country: |
+      CREATE CONSTRAINT unique_country
+      FOR (c:Country) REQUIRE c.id IS UNIQUE;
+    unique_state: |
+      CREATE CONSTRAINT unique_state
+      FOR (s:State) REQUIRE s.id IS UNIQUE;
+    unique_city: |
+      CREATE CONSTRAINT unique_city
+      FOR (c:City) REQUIRE c.id IS UNIQUE;
+    unique_region: |
+      CREATE CONSTRAINT unique_region
+      FOR (r:Region) REQUIRE r.name IS UNIQUE;
+    unique_subregion: |
+      CREATE CONSTRAINT unique_subregion
+      FOR (s:SubRegion) REQUIRE s.id IS UNIQUE;
+    unique_currency: |
+      CREATE CONSTRAINT unique_currency
+      FOR (c:Currency) REQUIRE c.name IS UNIQUE;
+
+  indexes:
+#         Running the Constraint queries will create indexes for node properties of interest.
+loading_queries:
+  nodes:
+    countries: |
+      with $rows as rows
+      unwind rows as row
+
+      merge (c:Country {id: row.iso2})
+      merge (:Currency {name: row.currency})
+      merge (:Region {name: row.region})
+      merge (:SubRegion {name: row.subregion})
+
+      set c.name = row.name
+
+    states: |
+      with $rows as rows
+      unwind rows as row
+
+      merge (s:State {id: row.state_code})
+
+      set s.name = row.name
+
+    cities: |
+      with $rows as rows
+      unwind rows as row
+
+      merge (c:City {id: row.id})
+
+      set c.name = row.name
+
+  relationships:
+    countries: |
+      with $rows as rows
+      unwind rows as row
+
+      match (c:Country {id: row.iso2})
+      match (cur:Currency {name: row.currency})
+      match (r:Region {name: row.region})
+      match (sr:SubRegion {name: row.subregion})
+
+      merge (r)-[:HAS_SUBREGION]->(sr)
+      merge (sr)-[:HAS_COUNTRY]->(c)
+      merge (c)-[:HAS_CURRENCY]->(cur)
+
+    states: |
+      with $rows as rows
+      unwind rows as row
+
+      match (s:State {id: row.state_code})
+      match (c:Country {id: row.country_code})
+
+      merge (c)-[:HAS_STATE]->(s)
+
+    cities: |
+      with $rows as rows
+      unwind rows as row
+
+      match (c:City {id: row.id})
+      match (s:State {id: row.state_code})
+
+      merge (s)-[:HAS_CITY]->(c)
+
+

@@ -32,18 +32,19 @@ loading_queries:
       with $rows as rows
       unwind rows as row
 
-      merge (c:Country {id: row.iso2})
+      merge (c:Country {id: row.id})
       merge (:Currency {name: row.currency})
       merge (:Region {name: row.region})
       merge (:SubRegion {name: row.subregion})
 
       set c.name = row.name
+      set c.native = row.native
 
     states: |
       with $rows as rows
       unwind rows as row
 
-      merge (s:State {id: row.state_code})
+      merge (s:State {id: row.id})
 
       set s.name = row.name
 
@@ -60,7 +61,7 @@ loading_queries:
       with $rows as rows
       unwind rows as row
 
-      match (c:Country {id: row.iso2})
+      match (c:Country {id: row.id})
       match (cur:Currency {name: row.currency})
       match (r:Region {name: row.region})
       match (sr:SubRegion {name: row.subregion})
@@ -73,8 +74,8 @@ loading_queries:
       with $rows as rows
       unwind rows as row
 
-      match (s:State {id: row.state_code})
-      match (c:Country {id: row.country_code})
+      match (s:State {id: row.id})
+      match (c:Country {id: row.country_id})
 
       merge (c)-[:HAS_STATE]->(s)
 
@@ -83,8 +84,24 @@ loading_queries:
       unwind rows as row
 
       match (c:City {id: row.id})
-      match (s:State {id: row.state_code})
+      match (s:State {id: row.state_id})
 
       merge (s)-[:HAS_CITY]->(c)
-
+analysis_queries:
+  cities_per_country: |
+    match (co:Country)--(:State)--(ci:City)
+    return  co.name as name, 
+            count(ci) as numCities
+    order by numCities desc 
+  number_countries_with_city_name: |
+    match (co:Country)--(:State)--(ci:City)
+    return  ci.name as name,
+            count(co) as numCountries
+    order by numCountries desc
+  common_currency: |
+    match (co:Country)--(cur:Currency)
+    return  cur.name as name, 
+            count(co) as numCountries,
+            collect(co.name) as countries
+    order by numCountries desc
 

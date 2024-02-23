@@ -66,9 +66,9 @@ loading_queries:
       match (r:Region {name: row.region})
       match (sr:SubRegion {name: row.subregion})
 
-      create (r)-[:HAS_SUBREGION]->(sr)
-      create (sr)-[:HAS_COUNTRY]->(c)
-      create (c)-[:HAS_CURRENCY]->(cur)
+      merge (r)-[:HAS_SUBREGION]->(sr)
+      merge (sr)-[:HAS_COUNTRY]->(c)
+      merge (c)-[:HAS_CURRENCY]->(cur)
 
     states: |
       with $rows as rows
